@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "leisair-ml"
+version = "0.1.0"
+description = ""
+authors = ["Ayman Elhalwagy <66922109+ayyman-e@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.104.1"
+uvicorn = "^0.24.0.post1"
+pandas = "^2.1.3"
+numpy = "^1.26.2"
+pillow = "^10.1.0"
+torch = "^2.1.1"
+motor = "^3.3.2"
+bson = "^0.5.10"
+asyncio = "^3.4.3"
+watchdog = "^3.0.0"
+ultralytics = "^8.0.212"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
