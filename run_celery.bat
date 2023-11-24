@@ -1,1 +1,1 @@
-celery -A app.celery_worker worker --loglevel=info -E
+celery -A celery_worker worker --loglevel=info -E -P solo

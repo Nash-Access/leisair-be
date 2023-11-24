@@ -1,1 +1,1 @@
-uvicorn app.main:app
+uvicorn main:app
