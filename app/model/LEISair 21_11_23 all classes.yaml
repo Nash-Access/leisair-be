@@ -1,0 +1,13 @@
+path: C:/Users/Ben/PycharmProjects/yolo_boats/
+train: Dataset Compositions/LEISair 21_11_23 yolo all classes/train/
+val: Dataset Compositions/LEISair 21_11_23 yolo all classes/valid/
+test: Dataset Compositions/LEISair 21_11_23 yolo all classes/test/
+
+nc: 35
+names: ['Kayak or Canoe', 'Narrow Boat','RIB - General','RIB - Pleasure','RIB - RNLI', 'RIB - Tours','Rowing - 4','Rowing - 8','single scull', 'double scull', 'rowboat other', 'SUP', 'Sailing Dinghy', 'Service - Port Tender or Police', 'Service - Tug','Service - Tug Towing','Service - Tug Pushing','Service - General','Service - Bunker Barge', 'Small Powered - General', 'dayboat',   'pleasure cruiser', 'Service - Workboat',  'patrol vessel', 'Small Powered - Pleasure Boat', 'Small Powered - Tender', 'Yacht - Not Under Sail',   'Yacht - Under Sail','Class V Passenger', 'Uber Boat','Tall Ship','Large Shipping - General','Large Shipping - Cargo','Large Shipping - Dredger','Large Shipping - Warship']
+roboflow:
+  workspace: project
+  project: boat-detection-4tmst
+  version: 1
+  license: Public Domain
+  url: https://universe.roboflow.com/project/boat-detection-4tmst/dataset/1

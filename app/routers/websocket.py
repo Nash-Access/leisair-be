@@ -1,4 +1,3 @@
-# routers/websocket.py
 import asyncio
 from fastapi import APIRouter, WebSocket
 from ..mongo_handler import MongoDBHandler

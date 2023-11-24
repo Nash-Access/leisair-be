@@ -9,7 +9,7 @@ class MongoDBHandler:
         self.collection = self.db['cameraVideo']
 
     async def create_video(self, video_data: VideoStatus) -> VideoStatus:
-        video = video_data.dict(by_alias=True)
+        video = video_data.model_dump(by_alias=True)
         result = await self.collection.insert_one(video)
         video['file_id'] = result.inserted_id
         return VideoStatus(**video)

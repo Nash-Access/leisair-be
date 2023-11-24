@@ -189,6 +189,7 @@ def run(
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
+                        
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
@@ -285,6 +286,10 @@ def parse_opt():
     print_args(vars(opt))
     return opt
 
+def yolobbox2bbox(x,y,w,h):
+    x1, y1 = x-w/2, y-h/2
+    x2, y2 = x+w/2, y+h/2
+    return x1, y1, x2, y2
 
 def main(opt):
     check_requirements(ROOT / 'requirements.txt', exclude=('tensorboard', 'thop'))

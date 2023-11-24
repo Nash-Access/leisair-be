@@ -1,18 +1,16 @@
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from app.routers import api, websocket
-from .file_watcher import start_watching, stop_watching  
+from .file_watcher import start_watching, stop_watching
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    start_watching('/path/to/watch') 
-    # TODO: LOAD YOLO MODEL HERE
+    start_watching() 
+    # TODO: Load any necessary resources, like a YOLO model
     yield
     stop_watching()
-    # TODO: UNLOAD YOLO MODEL HERE
-
+    # TODO: Unload resources, like the YOLO model
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(api.router)
 app.include_router(websocket.router)
-
