@@ -1,76 +1,95 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, AfterValidator, PlainSerializer, WithJsonSchema
+from typing import List, Optional, Annotated, Union
 from bson import ObjectId
 from datetime import datetime
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
 
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
+# class PyObjectId(ObjectId):
+#     @classmethod
+#     def __get_validators__(cls):
+#         yield cls.validate
+
+#     @classmethod
+#     def validate(cls, v):
+#         if not ObjectId.is_valid(v):
+#             raise ValueError("Invalid ObjectId")
+#         return ObjectId(v)
+
+#     @classmethod
+#     def __get_pydantic_json_schema__(cls, field_schema):
+#         field_schema.update(type="string")
+
+
+def validate_object_id(v: Union[str, ObjectId]) -> ObjectId:
+    if isinstance(v, ObjectId):
+        return v
+    if ObjectId.is_valid(v):
         return ObjectId(v)
+    raise ValueError("Invalid ObjectId")
 
-    @classmethod
-    def __get_pydantic_json_schema__(cls, v):
-        return {"type": "string", "format": "objectid"}
+
+PyObjectId = Annotated[
+    Union[str, ObjectId],
+    AfterValidator(validate_object_id),
+    PlainSerializer(lambda x: str(x), return_type=str),
+    WithJsonSchema({"type": "string"}, mode="serialization"),
+]
+
+
+class CameraLocation(BaseModel):
+    id: Optional[PyObjectId] = Field(None, alias="_id")
+    name: str
+    latitude: float
+    longitude: float
+
+    class Config:
+        json_encoders = {ObjectId: str}
+        populate_by_name = True
+        exclude_none = True
+        arbitrary_types_allowed = True
+
+
+class VesselDetected(BaseModel):
+    type: str = Field(
+        ...,
+        description="'Kayak or Canoe' | 'RIB' | 'Rowing' | 'SUP' | 'Small Unpowered' | 'Small Powered' | 'Tug' | 'Passenger'",
+    )
+    confidence: float
+    speed: Optional[float]
+    direction: Optional[str]
+    bbox: dict
+
+
+class VesselDetection(BaseModel):
+    frame: int
+    detected: List[VesselDetected]
+
+
+class CameraVideo(BaseModel):
+    id: Optional[PyObjectId] = Field(None, alias="_id")
+    locationId: str
+    filename: str
+    startTime: datetime
+    endTime: Optional[datetime]
+    vesselsDetected: Optional[List[VesselDetection]]
+
+    class Config:
+        json_encoders = {ObjectId: str}
+        exclude_none = True
+        populate_by_name = True
+        arbitrary_types_allowed = True
+
 
 class VideoStatus(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    id: Optional[str] = Field(None, alias="_id")
     filename: str
     status: str
     progress: float
-    history: List[str]
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime]
-
+    createdAt: datetime
+    updatedAt: Optional[datetime]
 
     class Config:
+        json_encoders = {ObjectId: str}
+        exclude_none = True
         populate_by_name = True
         arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str
-        }
-        json_schema_extra = {
-            "example": {
-                "filename": "example_video.mp4",
-                "status": "processing",
-                "progress": 50.0,
-                "history": ["uploaded", "processing"],
-            }
-        }
-
-class VesselDetection(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    cameraId: str
-    x1: int
-    y1: int
-    x2: int
-    y2: int
-    classification: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    confidence: float
-    direction: str
-    
-    class Config:
-        populate_by_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str
-        }
-        json_schema_extra = {
-            "example": {
-                "cameraId": "camera1",
-                "x1": 0,
-                "y1": 0,
-                "x2": 100,
-                "y2": 100,
-                "classification": "vessel",
-                "timestamp": "2020-01-01T00:00:00Z",
-                "confidence": 0.9,
-                "direction": "East",
-            }
-        }

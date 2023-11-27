@@ -13,5 +13,5 @@ class DetectionRequest(BaseModel):
 @router.post("/detect")
 async def process_vido(request: DetectionRequest):
     print("Received request to detect file: ", request.file_path)
-    process_file.delay(request.file_path)  # Enqueue the task to Celery
+    process_file.delay(request.file_path)
     return {"message": "Detection started"}

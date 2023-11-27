@@ -2,25 +2,35 @@ import time
 from celery import Celery
 from celery.utils.log import get_task_logger
 import logging
-from services.vessel_detection import main, run
+from mongo_handler import MongoDBHandler
+from services.vessel_detection import run
 from pathlib import Path
+import sys
+from pathlib import Path
+from logger import custom_logger
 
+# initialize mongo_handler
+mongo_handler = MongoDBHandler()
 
-# Set up logging
+# Create a custom logger
+logger = custom_logger("leisair")
+
+root_dir = Path(__file__).resolve().parent
+sys.path.append(str(root_dir))
+
 logging.basicConfig(level=logging.INFO)
 logger = get_task_logger(__name__)
 
-# Configure Celery to use Redis as the broker and result backend
 celery_app = Celery("nash_worker", broker="amqp://localhost:5672/")
 
-# Update Celery configuration
+
 celery_app.conf.update(
     task_track_started=True,
     task_serializer="json",
-    result_expires=3600,  # Results expire after 1 hour
+    result_expires=3600,
     worker_log_color=False,
     worker_hijack_root_logger=False,
-    accept_content=["json"],  # Accept JSON content only
+    accept_content=["json"],
     broker_connection_retry_on_startup=True,
 )
 

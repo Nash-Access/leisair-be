@@ -5,7 +5,7 @@ from mongo_handler import MongoDBHandler
 router = APIRouter()
 
 # Initialize MongoDBHandler
-mongo_handler = MongoDBHandler("mongodb://localhost:27017", "leisair")
+mongo_handler = MongoDBHandler()
 
 
 @router.websocket("/ws")

@@ -30,12 +30,17 @@ Usage - formats:
 
 import argparse
 import csv
+from datetime import datetime
 import os
 import platform
 import sys
 from pathlib import Path
 
 import torch
+
+from mongo_handler import MongoDBHandler
+from schemas import CameraLocation, CameraVideo, VesselDetected, VesselDetection
+from bson import ObjectId
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -71,6 +76,77 @@ from utils.general import (
 )
 from utils.torch_utils import select_device, smart_inference_mode
 
+mongo_handler = MongoDBHandler()
+
+
+def check_and_create_location(filename: str) -> str:
+    location_name = filename.split(" ")[0]
+
+    # Check if location exists
+    existing_location = mongo_handler.read_camera_location_by_name(location_name)
+    if existing_location:
+        return existing_location.id
+    else:
+        # Create new location
+        LOGGER.info(f"NAME: {location_name}")
+        new_location = CameraLocation(name=location_name, latitude=0.0, longitude=0.0)
+        location_id = mongo_handler.create_camera_location(new_location)
+        LOGGER.info(f"LOCATION ID: {location_id}")
+        return location_id
+
+
+def create_camera_video_entry(filename: str, location_id: str):
+    datetime_format = "%Y-%m-%d_%H_%M_%S_%f"
+    time = datetime.strptime(filename.split(" ")[1], datetime_format)
+
+    LOGGER.info(f"TIME: {time}")
+    LOGGER.info(f"LOCATION ID:{location_id}")
+    LOGGER.info(f"FILENAME:{filename}")
+
+    try:
+        new_video = CameraVideo(
+            locationId=str(location_id),
+            filename=filename,
+            startTime=time,
+            endTime=None,
+            vesselsDetected=None,
+        )
+        video_id = mongo_handler.create_camera_video(new_video)
+        mongo_handler.create_video_status(video_id, filename, "processing", 0.0)
+        return video_id
+    except ValueError as e:
+        LOGGER.error(f"Error creating CameraVideo: {e}")
+        print(f"Error details: {e}")
+
+        # Optional: Print each attribute to see their values
+        print(f"locationId: {location_id}, filename: {filename}, startTime: {time}")
+        return None
+
+
+def process_frame_and_update_vessel_detection(
+    camera_id: str, frame_number: int, timestamp: datetime, detections
+):
+    mongo_handler = MongoDBHandler()
+    detected_vessels = [
+        VesselDetected(
+            type=detection["class"],
+            confidence=detection["confidence"],
+            bbox=yolobbox2bbox(
+                *detection["bbox"]
+            ),  # Convert YOLO bbox to x1, y1, x2, y2 format
+        )
+        for detection in detections
+    ]
+
+    vessel_detection = VesselDetection(
+        cameraId=camera_id,
+        frame=frame_number,
+        timestamp=timestamp,
+        detected=detected_vessels,
+    )
+
+    mongo_handler.create_vessel_detection(vessel_detection)
+
 
 @smart_inference_mode()
 def run(
@@ -103,6 +179,12 @@ def run(
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
 ):
+    video_filename = Path(source).stem
+    # Create a new camera video entry
+    location_id = check_and_create_location(video_filename)
+    video_id = create_camera_video_entry(video_filename, location_id)
+    vesselsDetected = {}
+
     source = str(source)
     save_img = not nosave and not source.endswith(".txt")  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -161,6 +243,7 @@ def run(
                 else False
             )
             pred = model(im, augment=augment, visualize=visualize)
+            # print("PRED:", pred)
 
         # NMS
         with dt[2]:
@@ -215,7 +298,24 @@ def run(
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
+                # print("DETECTIONS:", det)
+                detections = []
                 for *xyxy, conf, cls in reversed(det):
+                    # print("TYPE:", names[int(cls)])
+                    # print("CONFIDENCE:", float(conf))
+                    # print("BBOX:", torch.tensor(xyxy).view(1, 4).view(-1).tolist())
+                    bbox = torch.tensor(xyxy).view(1, 4).view(-1).tolist()
+                    bbox = {"x1": bbox[0], "y1": bbox[1], "x2": bbox[2], "y2": bbox[3]}
+
+                    detections.append(
+                        VesselDetected(
+                            type=names[int(cls)],
+                            confidence=float(conf),
+                            speed=None,
+                            direction=None,
+                            bbox=bbox,
+                        )
+                    )
                     c = int(cls)  # integer class
                     label = names[c] if hide_conf else f"{names[c]}"
                     confidence = float(conf)
@@ -288,11 +388,17 @@ def run(
                         )
                     vid_writer[i].write(im0)
 
+        # update vessels detected
+        vesselsDetected[str(frame)] = detections
+        progress = (dataset.frame / dataset.frames) * 100.0
+        mongo_handler.update_video_status(video_id, "processing", progress)
+
         # Print time (inference-only)
         LOGGER.info(
             f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms"
         )
-
+    mongo_handler.update_vessels_detected_bulk(video_id, vesselsDetected)
+    mongo_handler.update_video_status(video_id, "done", 100.0)
     # Print results
     t = tuple(x.t / seen * 1e3 for x in dt)  # speeds per image
     LOGGER.info(
@@ -310,123 +416,123 @@ def run(
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
 
-def parse_opt():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--weights",
-        nargs="+",
-        type=str,
-        default="C:/Users/Ben/PycharmProjects/yolo_boats/runs/train/LEISair 03_11_23 all classes/weights/best.pt",
-        help="model path or triton URL",
-    )
-
-    name = parser.parse_args()
-    name = name.weights
-    name = name.split("/")[-3]
-
-    # Sources with different angles and boats
-    # --source "C:/Users/Ben/Documents/Thamest River/BLABF/BLABF 2023-09-22_06_27_44_027.mp4"
-    # --source "C:/Users/Ben/Documents/Thamest River/CCTV KEMPF Example for LeisAIR/KEMPF 2023-09-22_07_54_51_032.mp4"
-    # "C:/Users/Ben/Documents/Thamest River/CCTV KEMPF Example for LeisAIR/KEMPF 2023-09-22_07_15_47_425.mp4"
-    parser.add_argument(
-        "--source",
-        type=str,
-        default="C:/Users/Ben/Documents/Thamest River/CCTV KEMPF Example for LeisAIR/KEMPF 2023-09-22_07_54_51_032.mp4",
-        help="file/dir/URL/glob/screen/0(webcam)",
-    )
-    parser.add_argument(
-        "--data",
-        type=str,
-        default="C:/Users/Ben/PycharmProjects/yolo_boats/data/LEISair 03_11_23 all classes.yaml",
-        help="(optional) dataset.yaml path",
-    )
-    parser.add_argument(
-        "--imgsz",
-        "--img",
-        "--img-size",
-        nargs="+",
-        type=int,
-        default=[640],
-        help="inference size h,w",
-    )
-    parser.add_argument(
-        "--conf-thres", type=float, default=0.25, help="confidence threshold"
-    )
-    parser.add_argument(
-        "--iou-thres", type=float, default=0.45, help="NMS IoU threshold"
-    )
-    parser.add_argument(
-        "--max-det", type=int, default=1000, help="maximum detections per image"
-    )
-    parser.add_argument(
-        "--device", default="", help="cuda device, i.e. 0 or 0,1,2,3 or cpu"
-    )
-    parser.add_argument("--view-img", action="store_true", help="show results")
-    parser.add_argument("--save-txt", action="store_true", help="save results to *.txt")
-    parser.add_argument(
-        "--save-csv", action="store_true", help="save results in CSV format"
-    )
-    parser.add_argument(
-        "--save-conf", action="store_true", help="save confidences in --save-txt labels"
-    )
-    parser.add_argument(
-        "--save-crop", action="store_true", help="save cropped prediction boxes"
-    )
-    parser.add_argument(
-        "--nosave", action="store_true", help="do not save images/videos"
-    )
-    parser.add_argument(
-        "--classes",
-        nargs="+",
-        type=int,
-        help="filter by class: --classes 0, or --classes 0 2 3",
-    )
-    parser.add_argument(
-        "--agnostic-nms", action="store_true", help="class-agnostic NMS"
-    )
-    parser.add_argument("--augment", action="store_true", help="augmented inference")
-    parser.add_argument("--visualize", action="store_true", help="visualize features")
-    parser.add_argument("--update", action="store_true", help="update all models")
-    parser.add_argument(
-        "--project", default=ROOT / "runs/detect", help="save results to project/name"
-    )
-    parser.add_argument("--name", default=name, help="save results to project/name")
-    parser.add_argument(
-        "--exist-ok",
-        action="store_true",
-        help="existing project/name ok, do not increment",
-    )
-    parser.add_argument(
-        "--line-thickness", default=3, type=int, help="bounding box thickness (pixels)"
-    )
-    parser.add_argument(
-        "--hide-labels", default=False, action="store_true", help="hide labels"
-    )
-    parser.add_argument(
-        "--hide-conf", default=False, action="store_true", help="hide confidences"
-    )
-    parser.add_argument(
-        "--half", action="store_true", help="use FP16 half-precision inference"
-    )
-    parser.add_argument(
-        "--dnn", action="store_true", help="use OpenCV DNN for ONNX inference"
-    )
-    parser.add_argument(
-        "--vid-stride", type=int, default=1, help="video frame-rate stride"
-    )
-    opt = parser.parse_args()
-    opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
-    print_args(vars(opt))
-    return opt
-
-
 def yolobbox2bbox(x, y, w, h):
     x1, y1 = x - w / 2, y - h / 2
     x2, y2 = x + w / 2, y + h / 2
     return x1, y1, x2, y2
 
 
-def main():
-    opt = parse_opt()
-    check_requirements(ROOT / "requirements.txt", exclude=("tensorboard", "thop"))
-    run(**vars(opt))
+# def parse_opt():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#         "--weights",
+#         nargs="+",
+#         type=str,
+#         default="C:/Users/Ben/PycharmProjects/yolo_boats/runs/train/LEISair 03_11_23 all classes/weights/best.pt",
+#         help="model path or triton URL",
+#     )
+
+#     name = parser.parse_args()
+#     name = name.weights
+#     name = name.split("/")[-3]
+
+#     # Sources with different angles and boats
+#     # --source "C:/Users/Ben/Documents/Thamest River/BLABF/BLABF 2023-09-22_06_27_44_027.mp4"
+#     # --source "C:/Users/Ben/Documents/Thamest River/CCTV KEMPF Example for LeisAIR/KEMPF 2023-09-22_07_54_51_032.mp4"
+#     # "C:/Users/Ben/Documents/Thamest River/CCTV KEMPF Example for LeisAIR/KEMPF 2023-09-22_07_15_47_425.mp4"
+#     parser.add_argument(
+#         "--source",
+#         type=str,
+#         default="C:/Users/Ben/Documents/Thamest River/CCTV KEMPF Example for LeisAIR/KEMPF 2023-09-22_07_54_51_032.mp4",
+#         help="file/dir/URL/glob/screen/0(webcam)",
+#     )
+#     parser.add_argument(
+#         "--data",
+#         type=str,
+#         default="C:/Users/Ben/PycharmProjects/yolo_boats/data/LEISair 03_11_23 all classes.yaml",
+#         help="(optional) dataset.yaml path",
+#     )
+#     parser.add_argument(
+#         "--imgsz",
+#         "--img",
+#         "--img-size",
+#         nargs="+",
+#         type=int,
+#         default=[640],
+#         help="inference size h,w",
+#     )
+#     parser.add_argument(
+#         "--conf-thres", type=float, default=0.25, help="confidence threshold"
+#     )
+#     parser.add_argument(
+#         "--iou-thres", type=float, default=0.45, help="NMS IoU threshold"
+#     )
+#     parser.add_argument(
+#         "--max-det", type=int, default=1000, help="maximum detections per image"
+#     )
+#     parser.add_argument(
+#         "--device", default="", help="cuda device, i.e. 0 or 0,1,2,3 or cpu"
+#     )
+#     parser.add_argument("--view-img", action="store_true", help="show results")
+#     parser.add_argument("--save-txt", action="store_true", help="save results to *.txt")
+#     parser.add_argument(
+#         "--save-csv", action="store_true", help="save results in CSV format"
+#     )
+#     parser.add_argument(
+#         "--save-conf", action="store_true", help="save confidences in --save-txt labels"
+#     )
+#     parser.add_argument(
+#         "--save-crop", action="store_true", help="save cropped prediction boxes"
+#     )
+#     parser.add_argument(
+#         "--nosave", action="store_true", help="do not save images/videos"
+#     )
+#     parser.add_argument(
+#         "--classes",
+#         nargs="+",
+#         type=int,
+#         help="filter by class: --classes 0, or --classes 0 2 3",
+#     )
+#     parser.add_argument(
+#         "--agnostic-nms", action="store_true", help="class-agnostic NMS"
+#     )
+#     parser.add_argument("--augment", action="store_true", help="augmented inference")
+#     parser.add_argument("--visualize", action="store_true", help="visualize features")
+#     parser.add_argument("--update", action="store_true", help="update all models")
+#     parser.add_argument(
+#         "--project", default=ROOT / "runs/detect", help="save results to project/name"
+#     )
+#     parser.add_argument("--name", default=name, help="save results to project/name")
+#     parser.add_argument(
+#         "--exist-ok",
+#         action="store_true",
+#         help="existing project/name ok, do not increment",
+#     )
+#     parser.add_argument(
+#         "--line-thickness", default=3, type=int, help="bounding box thickness (pixels)"
+#     )
+#     parser.add_argument(
+#         "--hide-labels", default=False, action="store_true", help="hide labels"
+#     )
+#     parser.add_argument(
+#         "--hide-conf", default=False, action="store_true", help="hide confidences"
+#     )
+#     parser.add_argument(
+#         "--half", action="store_true", help="use FP16 half-precision inference"
+#     )
+#     parser.add_argument(
+#         "--dnn", action="store_true", help="use OpenCV DNN for ONNX inference"
+#     )
+#     parser.add_argument(
+#         "--vid-stride", type=int, default=1, help="video frame-rate stride"
+#     )
+#     opt = parser.parse_args()
+#     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
+#     print_args(vars(opt))
+#     return opt
+
+
+# def main():
+#     opt = parse_opt()
+#     check_requirements(ROOT / "requirements.txt", exclude=("tensorboard", "thop"))
+#     run(**vars(opt))
