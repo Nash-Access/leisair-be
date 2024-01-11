@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
-from routers import api, websocket
+from routers import api
 from file_watcher import start_watching, stop_watching
 
 
@@ -15,4 +15,3 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(api.router)
-app.include_router(websocket.router)

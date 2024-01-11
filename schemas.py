@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, AfterValidator, PlainSerializer, WithJsonSchema
-from typing import List, Optional, Annotated, Union
+from typing import Dict, List, Optional, Annotated, Union
 from bson import ObjectId
 from datetime import datetime
 
@@ -60,18 +60,14 @@ class VesselDetected(BaseModel):
     bbox: dict
 
 
-class VesselDetection(BaseModel):
-    frame: int
-    detected: List[VesselDetected]
-
-
 class CameraVideo(BaseModel):
     id: Optional[PyObjectId] = Field(None, alias="_id")
     locationId: str
     filename: str
     startTime: datetime
     endTime: Optional[datetime]
-    vesselsDetected: Optional[List[VesselDetection]]
+    vesselsDetected: Optional[Dict[int, List[VesselDetected]]]
+    metadata: Optional[Dict]
 
     class Config:
         json_encoders = {ObjectId: str}

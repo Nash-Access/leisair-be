@@ -39,7 +39,7 @@ from pathlib import Path
 import torch
 
 from mongo_handler import MongoDBHandler
-from schemas import CameraLocation, CameraVideo, VesselDetected, VesselDetection
+from schemas import CameraLocation, CameraVideo, VesselDetected
 from bson import ObjectId
 
 FILE = Path(__file__).resolve()
@@ -121,31 +121,6 @@ def create_camera_video_entry(filename: str, location_id: str):
         # Optional: Print each attribute to see their values
         print(f"locationId: {location_id}, filename: {filename}, startTime: {time}")
         return None
-
-
-def process_frame_and_update_vessel_detection(
-    camera_id: str, frame_number: int, timestamp: datetime, detections
-):
-    mongo_handler = MongoDBHandler()
-    detected_vessels = [
-        VesselDetected(
-            type=detection["class"],
-            confidence=detection["confidence"],
-            bbox=yolobbox2bbox(
-                *detection["bbox"]
-            ),  # Convert YOLO bbox to x1, y1, x2, y2 format
-        )
-        for detection in detections
-    ]
-
-    vessel_detection = VesselDetection(
-        cameraId=camera_id,
-        frame=frame_number,
-        timestamp=timestamp,
-        detected=detected_vessels,
-    )
-
-    mongo_handler.create_vessel_detection(vessel_detection)
 
 
 @smart_inference_mode()

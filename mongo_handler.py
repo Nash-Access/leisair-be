@@ -8,7 +8,6 @@ from schemas import (
     CameraVideo,
     PyObjectId,
     VesselDetected,
-    VesselDetection,
     VideoStatus,
 )
 from bson import ObjectId
@@ -173,41 +172,6 @@ class MongoDBHandler:
         """
         collection = self._get_collection("cameraVideo")
         result = collection.delete_one({"_id": ObjectId(video_id)})
-        return result.deleted_count > 0
-
-    # CRUD operations for VesselDetection
-    def create_vessel_detection(self, detection: VesselDetection) -> str:
-        """
-        Create a new vessel detection.
-        """
-        collection = self._get_collection("vesselDetection")
-        result = collection.insert_one(detection.model_dump(by_alias=True))
-        return str(result.inserted_id)
-
-    def read_vessel_detection(self, detection_id: str) -> VesselDetection:
-        """
-        Read a vessel detection by ID.
-        """
-        collection = self._get_collection("vesselDetection")
-        document = collection.find_one({"_id": ObjectId(detection_id)})
-        return VesselDetection(**document) if document else None
-
-    def update_vessel_detection(self, detection_id: str, update_data: Dict) -> bool:
-        """
-        Update a vessel detection.
-        """
-        collection = self._get_collection("vesselDetection")
-        result = collection.update_one(
-            {"_id": ObjectId(detection_id)}, {"$set": update_data}
-        )
-        return result.modified_count > 0
-
-    def delete_vessel_detection(self, detection_id: str) -> bool:
-        """
-        Delete a vessel detection.
-        """
-        collection = self._get_collection("vesselDetection")
-        result = collection.delete_one({"_id": ObjectId(detection_id)})
         return result.deleted_count > 0
 
     # CRUD operations for VideoStatus
