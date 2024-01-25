@@ -1,1 +1,1 @@
-uvicorn main:app
+uvicorn leisair_ml.run_api:app
