@@ -13,6 +13,9 @@ from typing import Optional, List, Dict
 from pymongo.database import Database
 from pymongo import MongoClient
 from pymongo.collection import Collection
+from dotenv import load_dotenv
+
+load_dotenv()
 
 custom_logger = logging.getLogger("leisair")
 
@@ -43,7 +46,7 @@ class MongoDBHandler:
             with cls._lock:
                 if cls._instance is None:
                     connection_string = os.getenv(
-                        "MONGODB_URI", "mongodb://localhost:27017/nash"
+                        "MONGO_URI", "mongodb://localhost:27017/nash"
                     )
                     try:
                         custom_logger.info("Attempting to connect to MongoDB")

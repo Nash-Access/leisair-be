@@ -1,13 +1,16 @@
 import time
+import sys
+import os
+from dotenv import load_dotenv
 from celery import Celery
 from celery.utils.log import get_task_logger
 import logging
 from leisair_ml.utils.mongo_handler import MongoDBHandler
 from leisair_ml.services.vessel_detection import run
 from pathlib import Path
-import sys
-from pathlib import Path
 from leisair_ml.utils.logger import custom_logger
+
+load_dotenv()
 
 # initialize mongo_handler
 mongo_handler = MongoDBHandler()
@@ -21,7 +24,7 @@ sys.path.append(str(root_dir))
 logging.basicConfig(level=logging.INFO)
 logger = get_task_logger(__name__)
 
-celery_app = Celery("nash_worker", broker="amqp://localhost:5672/")
+celery_app = Celery("nash_worker", broker=os.environ.get("RABBIT_URL"))
 
 
 celery_app.conf.update(

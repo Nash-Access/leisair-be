@@ -21,10 +21,11 @@ celery = "^5.3.6"
 httpx = "^0.25.1"
 redis = "^5.0.1"
 pymongo = "^4.6.1"
+python-dotenv = "^1.0.1"
 
 [tool.poetry.scripts]
-api = "leisair_ml.run_api:app"
-worker = "leisair_ml:run_worker"
+api = "leisair_ml.run_api:main"
+worker = "leisair_ml.run_worker:main"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.0.3"
