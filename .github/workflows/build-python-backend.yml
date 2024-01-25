@@ -14,20 +14,21 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # Install dependencies (including pylint)
+    # Install Poetry using pip
+    - name: Install Poetry
+      run: pip install poetry
+
+    # Install project dependencies using Poetry
     - name: Install dependencies
-      run: |
-        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-        poetry install
-    
-    # black formatter
+      run: poetry install
+
+    # Black formatter check
     - name: Black formatter
-      run: pipenv run black --check .
+      run: poetry run black --check .
     
     # Run pylint
     - name: Lint with pylint
-      run: |
-        poetry run pylint .
+      run: poetry run pylint .
 
     # Log in to a Docker registry
     - name: Log in to GitHub Container Registry
@@ -42,6 +43,6 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
-        file: ./dockerfile
+        file: ./Dockerfile
         push: true
         tags: ghcr.io/${{ github.repository_owner }}/leisair-ml:latest
