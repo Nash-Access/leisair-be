@@ -28,7 +28,7 @@ jobs:
     
     # Run pylint
     - name: Lint with pylint
-      run: poetry run pylint .
+      run: poetry run pylint ./leisair_ml
 
     # Log in to a Docker registry
     - name: Log in to GitHub Container Registry
