@@ -155,4 +155,4 @@ cython_debug/
 
 # Ignore the /model directory
 
-data
+/data
