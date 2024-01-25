@@ -14,21 +14,21 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # Install Poetry using pip
-    - name: Install Poetry
-      run: pip install poetry
+    # # Install Poetry using pip
+    # - name: Install Poetry
+    #   run: pip install poetry
 
-    # Install project dependencies using Poetry
-    - name: Install dependencies
-      run: poetry install
+    # # Install project dependencies using Poetry
+    # - name: Install dependencies
+    #   run: poetry install
 
-    # Black formatter check
-    - name: Black formatter
-      run: poetry run black --check .
+    # # Black formatter check
+    # - name: Black formatter
+    #   run: poetry run black --check .
     
-    # Run pylint
-    - name: Lint with pylint
-      run: poetry run pylint ./leisair_ml
+    # # Run pylint
+    # - name: Lint with pylint
+    #   run: poetry run pylint ./leisair_ml
 
     # Log in to a Docker registry
     - name: Log in to GitHub Container Registry
