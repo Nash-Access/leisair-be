@@ -1,0 +1,8 @@
+.venv
+.git
+.gitignore
+node_modules
+.dockerignore
+dockerfile
+__pycache__
+*.pyc

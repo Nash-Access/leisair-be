@@ -40,9 +40,10 @@ celery_app.conf.update(
 
 @celery_app.task(name="tasks.process_file", bind=True)
 def process_file(self, file_path: str):
+    model_path = Path(os.environ.get("MODEL_PATH",current_dir))
     logger.info("Starting to process file: %s", file_path)
     run(
-        weights=Path(current_dir / "model/best.pt"),
+        weights=Path(model_path / "best.pt"),
         source=Path(file_path),
-        data=Path(current_dir / "model/LEISair 03_11_23 all classes.yaml"),
+        data=Path(model_path / "LEISair 03_11_23 all classes.yaml"),
     )

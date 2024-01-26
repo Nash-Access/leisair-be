@@ -4,6 +4,9 @@ FROM pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime
 # Set working directory
 WORKDIR /app
 
+# Install dependencies including libGL
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+
 # Install Poetry
 RUN pip install poetry
 
@@ -14,14 +17,11 @@ RUN poetry --version
 # Copy the poetry configuration files
 COPY pyproject.toml poetry.lock* /app/
 
-
-
 # Disable virtual environments creation by poetry
 RUN poetry config virtualenvs.create false
 
-# Install project dependencies
 # No need to install torch and torchvision as they are already in the base image
-RUN poetry install --no-dev --no-root
+RUN poetry install --no-dev
 
 # Copy the application files
 COPY . /app
