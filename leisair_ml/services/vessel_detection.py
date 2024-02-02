@@ -109,7 +109,7 @@ def create_camera_video_entry(filename: str, location_id: str):
             filename=filename,
             startTime=time,
             endTime=None,
-            vesselsDetected=None,
+            vesselsDetected={},
         )
         video_id = mongo_handler.create_camera_video(new_video)
         mongo_handler.create_video_status(video_id, filename, "processing", 0.0)

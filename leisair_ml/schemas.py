@@ -67,7 +67,7 @@ class CameraVideo(BaseModel):
     startTime: datetime
     endTime: Optional[datetime]
     vesselsDetected: Optional[Dict[int, List[VesselDetected]]]
-    metadata: Optional[Dict]
+    # metadata: Optional[Dict]
 
     class Config:
         json_encoders = {ObjectId: str}

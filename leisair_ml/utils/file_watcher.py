@@ -2,7 +2,8 @@ import asyncio
 import os
 import queue
 import httpx
-from watchdog.observers import Observer
+# from watchdog.observers import Observer
+from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
 from dotenv import load_dotenv
 
@@ -22,7 +23,7 @@ class FileWatcher:
         self.path_to_watch = path_to_watch
         self.process_file_callback = process_file_callback
         self.thread_safe_queue = queue.Queue()
-        self.observer = Observer()
+        self.observer = Observer(timeout=5)
         self.observer.schedule(
             NewFileHandler(self.thread_safe_queue), self.path_to_watch, recursive=False
         )

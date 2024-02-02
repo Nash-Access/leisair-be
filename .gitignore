@@ -156,3 +156,4 @@ cython_debug/
 # Ignore the /model directory
 
 /data
+leisair_ml/model
