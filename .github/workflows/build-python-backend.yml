@@ -16,19 +16,19 @@ jobs:
         with:
           fetch-depth: 0 # Necessary for tags fetching
 
-      # # Get previous tag
-      # - name: Get previous tag
-      #   id: previoustag
-      #   uses: WyriHaximus/github-action-get-previous-tag@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Get previous tag
+      - name: Get previous tag
+        id: previoustag
+        uses: WyriHaximus/github-action-get-previous-tag@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # # Calculate next semantic version
-      # - name: Get next semantic version
-      #   id: semver
-      #   uses: WyriHaximus/github-action-next-semvers@v1
-      #   with:
-      #     version: ${{ steps.previoustag.outputs.tag }}
+      # Calculate next semantic version
+      - name: Get next semantic version
+        id: semver
+        uses: WyriHaximus/github-action-next-semvers@v1
+        with:
+          version: ${{ steps.previoustag.outputs.tag }}
 
       # Log in to GitHub Container Registry
       - name: Log in to GitHub Container Registry
@@ -46,8 +46,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/leisair-ml:0.1.0
-          build-args: VERSION="0.1.0"
+            ghcr.io/${{ github.repository_owner }}/leisair-ml:${{ steps.semver.outputs.patch }}
+          build-args: VERSION=${{ steps.semver.outputs.patch }}
 
       # Create a GitHub release with the new version tag (optional)
       - name: Create GitHub Release

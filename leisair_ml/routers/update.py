@@ -16,24 +16,35 @@ async def get_latest_version(package_name: str) -> str:
     """
     Fetch the latest semantic version tag of a package from GitHub Container Registry.
     """
-    url = f"https://ghcr.io/v2/{package_name}/tags/list"
+    url = f"https://ghcr.io/v2/{os.getenv('GITHUB_USERNAME')}/{package_name}/tags/list"
     headers = {
-        "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"
+        "Authorization": f"Bearer {os.getenv('ENCODED_GITHUB_TOKEN')}"
     }
     
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
+        print("RESPONSE: ", response.text)
         if response.is_error:
             return "unknown"  # or handle the error as needed
 
         data = response.json()
         tags = data.get("tags", [])
+        print("TAGS: ", tags)
 
         if not tags:
             return "unknown"
 
-        # Filter out any non-semantic version tags and sort them
-        semantic_tags = [v for v in tags if version.parse(v).is_prerelease is False and version.parse(v).is_devrelease is False]
+        # Filter out non-semantic version tags and sort them
+        semantic_tags = []
+        for tag in tags:
+            try:
+                # This will raise an exception if tag is not a valid semantic version
+                parsed_version = version.parse(tag)
+                if not parsed_version.is_prerelease and not parsed_version.is_devrelease:
+                    semantic_tags.append(tag)
+            except Exception as e:
+                print(f"Skipping non-semantic version tag: {tag} - {e}")
+
         if not semantic_tags:
             return "unknown"
 

@@ -30,32 +30,31 @@ class MongoDBHandler:
         _lock (threading.Lock): Lock object for thread-safe singleton instantiation.
     """
 
-    _instance: Optional["MongoDBHandler"] = None
-    _lock = threading.Lock()
+    _instance: Optional['MongoDBHandler'] = None
+    _lock: threading.Lock = threading.Lock()
+    
+    # Explicitly type attributes that will be set after __new__
+    client: MongoClient
     db: Database
 
-    def __new__(cls) -> "MongoDBHandler":
+    def __new__(cls) -> 'MongoDBHandler':
         """
         Create a new instance of MongoDBHandler if it doesn't exist; otherwise, return the existing instance.
-
-        Returns:
-        --------
-            MongoDBHandler: The singleton instance of MongoDBHandler.
         """
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
-                    connection_string = os.getenv(
-                        "MONGO_URI", "mongodb://localhost:27017/nash"
-                    )
+                    connection_string = os.getenv("MONGODB_URI", "mongodb://localhost:27017/ApexDev")
                     try:
-                        custom_logger.info("Attempting to connect to MongoDB")
-                        cls._instance = super(MongoDBHandler, cls).__new__(cls)
-                        cls._instance.client = MongoClient(connection_string)
-                        cls._instance.db = cls._instance.client.get_database()
-                        custom_logger.info("Connected to MongoDB")
+                        instance = super(MongoDBHandler, cls).__new__(cls)
+                        instance.client = MongoClient(connection_string)
+                        instance.db = instance.client.get_database()
+                        cls._instance = instance
                     except Exception as e:
                         custom_logger.critical(f"Could not connect to MongoDB: {e}")
+                        raise
+        if cls._instance is None:
+            raise Exception("Failed to create MongoDBHandler instance")
         return cls._instance
 
     def _get_collection(self, collection_name: str) -> Collection:
@@ -132,7 +131,7 @@ class MongoDBHandler:
         """
         collection = self._get_collection("cameraVideo")
         document = collection.find_one({"_id": ObjectId(video_id)})
-        return CameraVideo(**document) if document else None
+        return CameraVideo(**document) if document is not None else None
 
     def update_camera_video(self, video_id: str, update_data: Dict) -> bool:
         """
