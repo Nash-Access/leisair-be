@@ -1,6 +1,9 @@
 # Select a PyTorch base image with CUDA support that is compatible with your torch and torchvision versions
 FROM pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime
 
+# Argument for setting the version at build time
+ARG VERSION="unknown"
+
 # Set working directory
 WORKDIR /app
 
@@ -9,7 +12,6 @@ RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install Poetry
 RUN pip install poetry
-
 
 # Check Poetry version
 RUN poetry --version
@@ -25,6 +27,9 @@ RUN poetry install --no-dev
 
 # Copy the application files
 COPY . /app
+
+# Set the version as an environment variable
+ENV LEISAIR_ML_VERSION=$VERSION
 
 # Default command - can be overridden when running the container
 CMD ["poetry", "run", "api"]

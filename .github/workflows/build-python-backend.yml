@@ -9,40 +9,53 @@ on:
       - main
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Necessary for tags fetching
 
-    # # Install Poetry using pip
-    # - name: Install Poetry
-    #   run: pip install poetry
+      # Get previous tag
+      - name: Get previous tag
+        id: previoustag
+        uses: WyriHaximus/github-action-get-previous-tag@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # # Install project dependencies using Poetry
-    # - name: Install dependencies
-    #   run: poetry install
+      # Calculate next semantic version
+      - name: Get next semantic version
+        id: semver
+        uses: WyriHaximus/github-action-next-semvers@v1
+        with:
+          version: ${{ steps.previoustag.outputs.tag }}
 
-    # # Black formatter check
-    # - name: Black formatter
-    #   run: poetry run black --check .
-    
-    # # Run pylint
-    # - name: Lint with pylint
-    #   run: poetry run pylint ./leisair_ml
+      # Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
 
-    # Log in to a Docker registry
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_PAT }}
+      # Build Docker image with the new version tag
+      - name: Build Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/leisair-ml:${{ steps.semver.outputs.patch }}
+            ghcr.io/${{ github.repository_owner }}/leisair-ml:latest
+          build-args: VERSION=${{ steps.semver.outputs.patch }}
 
-    # Build and push Docker image
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags: ghcr.io/${{ github.repository_owner }}/leisair-ml:latest
+      # Create a GitHub release with the new version tag (optional)
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.semver.outputs.patch }}
+          release_name: Release ${{ steps.semver.outputs.patch }}

@@ -22,6 +22,8 @@ httpx = "^0.25.1"
 redis = "^5.0.1"
 pymongo = "^4.6.1"
 python-dotenv = "^1.0.1"
+python-multipart = "^0.0.7"
+packaging = "^23.2"
 
 [tool.poetry.scripts]
 api = "leisair_ml.run_api:main"
