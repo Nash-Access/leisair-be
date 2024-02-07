@@ -29,7 +29,7 @@ RUN poetry install --no-dev
 COPY . /app
 
 # Set the version as an environment variable
-ENV LEISAIR_ML_VERSION=$VERSION
+ENV LEISAIR_ML_VERSION=${VERSION}
 
 # Default command - can be overridden when running the container
 CMD ["poetry", "run", "api"]
