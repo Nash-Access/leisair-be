@@ -52,6 +52,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/leisair-ml:${{ steps.semver.outputs.patch }}
+            ghcr.io/${{ github.repository_owner }}/leisair-ml:latest
           build-args: VERSION=${{ steps.semver.outputs.patch }}
 
       # Create a GitHub release with the new version tag (optional)
