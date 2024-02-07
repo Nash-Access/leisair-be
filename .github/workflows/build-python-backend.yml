@@ -16,19 +16,19 @@ jobs:
         with:
           fetch-depth: 0 # Necessary for tags fetching
 
-      # Get previous tag
-      - name: Get previous tag
-        id: previoustag
-        uses: WyriHaximus/github-action-get-previous-tag@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # # Get previous tag
+      # - name: Get previous tag
+      #   id: previoustag
+      #   uses: WyriHaximus/github-action-get-previous-tag@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Calculate next semantic version
-      - name: Get next semantic version
-        id: semver
-        uses: WyriHaximus/github-action-next-semvers@v1
-        with:
-          version: ${{ steps.previoustag.outputs.tag }}
+      # # Calculate next semantic version
+      # - name: Get next semantic version
+      #   id: semver
+      #   uses: WyriHaximus/github-action-next-semvers@v1
+      #   with:
+      #     version: ${{ steps.previoustag.outputs.tag }}
 
       # Log in to GitHub Container Registry
       - name: Log in to GitHub Container Registry
