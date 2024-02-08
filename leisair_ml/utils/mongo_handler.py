@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import re
 import threading
 from leisair_ml.schemas import (
     CameraLocation,
@@ -9,7 +10,7 @@ from leisair_ml.schemas import (
     VideoStatus,
 )
 from bson.objectid import ObjectId
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 from pymongo.database import Database
 from pymongo import MongoClient
 from pymongo.collection import Collection
@@ -64,7 +65,7 @@ class MongoDBHandler:
         return self.db[collection_name]
 
     # CRUD operations for CameraLocation
-    def create_camera_location(self, location: CameraLocation) -> str:
+    def create_camera_location(self, location: CameraLocation) -> Union[str,None]:
         """
         Create a new camera location.
         """
@@ -80,7 +81,7 @@ class MongoDBHandler:
             print("Error while inserting:", e)
             return None
 
-    def read_camera_location(self, location_id: str) -> CameraLocation:
+    def read_camera_location(self, location_id: str) -> Union[CameraLocation, None]:
         """
         Read a camera location by ID.
         """
@@ -88,7 +89,7 @@ class MongoDBHandler:
         document = collection.find_one({"_id": ObjectId(location_id)})
         return CameraLocation(**document) if document else None
 
-    def read_camera_location_by_name(self, name: str) -> CameraLocation:
+    def read_camera_location_by_name(self, name: str) -> Union[CameraLocation, None]:
         collection = self._get_collection("cameraLocation")
         document = collection.find_one({"name": name})
         if document:
@@ -125,7 +126,7 @@ class MongoDBHandler:
         )
         return str(result.inserted_id)
 
-    def read_camera_video(self, video_id: str) -> CameraVideo:
+    def read_camera_video(self, video_id: str) -> Union[CameraVideo, None]:
         """
         Read a camera video by ID.
         """
@@ -183,7 +184,7 @@ class MongoDBHandler:
         """
         collection = self._get_collection("videoStatus")
         new_status = VideoStatus(
-            id=video_id,
+            _id=video_id,
             filename=filename,
             status=status,
             progress=progress,
@@ -195,7 +196,7 @@ class MongoDBHandler:
         )
         return str(result.inserted_id)
 
-    def read_video_status(self, status_id: str) -> VideoStatus:
+    def read_video_status(self, status_id: str) -> Union[VideoStatus, None]:
         """
         Read a video status by ID.
         """

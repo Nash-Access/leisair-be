@@ -85,7 +85,7 @@ def docker_login(username: str, token: str):
         "--username", username,
         "--password-stdin"
     ]
-    result = subprocess.run(login_command, input=token.encode(), capture_output=True, text=True)
+    result = subprocess.run(login_command, input=token, capture_output=True, text=True)
     if result.returncode != 0:
         raise Exception(f"Failed to log in to GHCR: {result.stderr}")
 
@@ -106,10 +106,26 @@ def initiate_update_process(services: dict):
 
     # Log in to GHCR
     docker_login(github_username, github_token)
-    
+
+    services_to_update = {}
+
+    # Iterate over the services and their new tags
     for service, new_tag in services.items():
+        if service == "leisair-ml":
+            services_to_update["worker"] = new_tag
+            services_to_update["fastapi"] = new_tag
+        elif service == "leisair-nextjs":
+            services_to_update["leisair-nextjs"] = new_tag
+    
+    service_map = {
+        "leisair-nextjs": "leisair-nextjs",
+        "worker": "leisair-ml",
+        "fastapi": "leisair-ml"
+    }
+
+    for service, new_tag in services_to_update.items():
         # Construct the new image name with tag
-        new_image = f"ghcr.io/{github_username}/{service}:{new_tag}"
+        new_image = f"ghcr.io/{github_username}/{service_map[service]}:{new_tag}"
         # Update the service using Docker service update
         try:
             subprocess.run(["docker", "service", "update", "--image", new_image, service], check=True)
@@ -122,6 +138,7 @@ class UpdateRequest(BaseModel):
 
 @router.post("/initiate-update")
 async def initiate_update(update_request: UpdateRequest, background_tasks: BackgroundTasks):
+    print("Received update request:", update_request)
     # Using background tasks to not block the API response
     background_tasks.add_task(initiate_update_process, update_request.services)
     return {"message": "Update process initiated"}
