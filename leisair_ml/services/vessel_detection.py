@@ -76,7 +76,11 @@ from leisair_ml.utils.general import (
 )
 from leisair_ml.utils.torch_utils import select_device, smart_inference_mode
 
+import supervision as sv
+
 mongo_handler = MongoDBHandler()
+byte_tracker = sv.ByteTrack()
+annotator = sv.BoxAnnotator()
 
 
 def check_and_create_location(filename: str) -> str:
@@ -121,6 +125,28 @@ def create_camera_video_entry(filename: str, location_id: str):
         # Optional: Print each attribute to see their values
         print(f"locationId: {location_id}, filename: {filename}, startTime: {time}")
         return None
+
+
+def run_supervision(video_frame, model):
+    """
+    Args:
+        video_frame: A single, raw frame from the source
+        model: The model used to run detection (should be YOLO8)
+
+    Returns:
+        An array of:
+            The tracked item's ID
+            The tracked item's class
+            The confidence of the prediction
+            The bbox coords of the item
+    """
+    results = model(video_frame)[0]
+    detections = sv.Detections.from_ultralytics(results)
+    detections = byte_tracker.update_with_detections(detections)
+    bboxes_this_frame = [
+        [tracker_id, class_id, confidence, xyxy] for xyxy, _, confidence, class_id, tracker_id in detections
+    ]
+    return bboxes_this_frame
 
 
 @smart_inference_mode()

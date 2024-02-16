@@ -24,6 +24,7 @@ pymongo = "^4.6.1"
 python-dotenv = "^1.0.1"
 python-multipart = "^0.0.7"
 packaging = "^23.2"
+supervision = "^0.18.0"
 
 [tool.poetry.scripts]
 api = "leisair_ml.run_api:main"
