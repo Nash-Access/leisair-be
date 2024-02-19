@@ -7,7 +7,7 @@ import os
 
 router = APIRouter()
 
-VIDEOS_PATH = os.environ.get("VIDEOS_PATH", "C:/Users/ayman/OneDrive - Brunel University London/PhD/NASH Project/mount-dir/file-drop")
+VIDEOS_PATH = os.environ.get("VIDEOS_PATH", "C:/Users/ayman/OneDrive - Brunel University London/PhD/NASH Project/mount-dir/cctv-videos")
 
 @router.post("/upload")
 async def process_video(file: UploadFile = File(...)):

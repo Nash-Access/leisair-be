@@ -50,6 +50,7 @@ class CameraLocation(BaseModel):
 
 
 class VesselDetected(BaseModel):
+    vesselId: str
     type: str = Field(
         ...,
         description="'Kayak or Canoe' | 'RIB' | 'Rowing' | 'SUP' | 'Small Unpowered' | 'Small Powered' | 'Tug' | 'Passenger'",

@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo
+    volumes:
+      - db:/data/db
+    ports:
+      - "27017:27017"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+
+  leisair-nextjs:
+    image: ghcr.io/ayyman-e/leisair-nextjs:latest
+    ports:
+      - "31000:3000"
+    environment:
+      GOOGLE_MAPS_API_KEY: "AIzaSyDtuIMtqGg4R1Gu8A_a1PjGjJkKzljcv_o"
+      MONGODB_URI: "mongodb://mongodb:27017/nash"
+      VIDEO_PATH: "/videos"
+      FASTAPI_URL: "http://fastapi:8000"
+      NEXT_PUBLIC_FASTAPI_URL: "http://fastapi:8000"
+    volumes:
+      - cctv-videos:/videos
+    # deploy:
+    #   replicas: 2
+    #   update_config:
+    #     parallelism: 1
+    #     delay: 10s
+    #     order: start-first
+
+  fastapi:
+    image: ghcr.io/ayyman-e/leisair-ml:latest
+    command: ["poetry", "run", "api"]
+    ports:
+      - "8000:8000"
+    environment:
+      RABBIT_URL: "amqp://rabbitmq:5672/"
+      MONGO_URI: "mongodb://mongodb:27017/nash"
+      VIDEOS_PATH: "/videos"
+      GITHUB_USERNAME: "ayyman-e"
+      GITHUB_TOKEN: "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"
+      ENCODED_GITHUB_TOKEN: "Z2hwXzI3TVVpeDZxbVVDanJaYXJGeGtlRXRFTzJsZjNvYjE4TVkzNw=="
+    volumes:
+      - cctv-videos:/videos
+    # deploy:
+    #   replicas: 2
+    #   update_config:
+    #     parallelism: 1
+    #     delay: 10s
+    #     order: start-first
+
+  worker:
+    image: ghcr.io/ayyman-e/leisair-ml:latest
+    command: ["poetry", "run", "worker"]
+    environment:
+      RABBIT_URL: "amqp://rabbitmq:5672/"
+      MONGO_URI: "mongodb://mongodb:27017/nash"
+      VIDEOS_PATH: "/videos"
+      MODEL_PATH: "/model"
+    volumes:
+      - cctv-videos:/videos
+      - model:/model
+    # deploy:
+    #   replicas: 2
+    #   update_config:
+    #     parallelism: 1
+    #     delay: 10s
+    #     order: start-first
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
+  cctv-videos:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "C:/Users/ayman/OneDrive - Brunel University London/PhD/NASH Project/mount-dir/cctv-videos"
+  model:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "C:/Users/ayman/OneDrive - Brunel University London/PhD/NASH Project/mount-dir/model"
+  db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "C:/Users/ayman/OneDrive - Brunel University London/PhD/NASH Project/mount-dir/db"
+
