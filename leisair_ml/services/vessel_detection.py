@@ -51,10 +51,15 @@ def run_supervision(video_frame, model, byte_tracker:ByteTrack):
     detections = sv.Detections.from_ultralytics(results)
     detections = byte_tracker.update_with_detections(detections)
     bboxes_this_frame = [
-        [tracker_id, class_id, confidence, xyxy] for xyxy, _, confidence, class_id, tracker_id, _ in detections
+        {
+            "tracker_id": tracker_id,
+            "class_id": class_id,
+            "confidence": confidence,
+            "bbox": {"x1": float(xyxy[0]), "y1": float(xyxy[1]), "x2": float(xyxy[2]), "y2": float(xyxy[3])}
+        }
+        for xyxy, _, confidence, class_id, tracker_id, _ in detections
     ]
     return bboxes_this_frame
-
 
 def run(weights: Path, source: Path):
     # Initialize model, byte_tracker, and annotator
@@ -80,20 +85,19 @@ def run(weights: Path, source: Path):
         video_frame = img 
         detections = run_supervision(video_frame, model, byte_tracker)
         for detection in detections:
-            tracker_id, class_id, confidence, bbox = detection
             vessel_detected = VesselDetected(
-                vesselId=str(tracker_id),
-                type=class_name_dict[class_id],
-                confidence=float(confidence),
+                vesselId=str(detection["tracker_id"]),
+                type=class_name_dict[detection["class_id"]],
+                confidence=float(detection["confidence"]),
                 speed=None,
                 direction=None,
-                bbox={"x1": bbox[0], "y1": bbox[1], "x2": bbox[2], "y3": bbox[3]}
+                bbox=detection["bbox"]
             )
             print(f"Vessel detected: {vessel_detected}")
             if str(idx) not in vesselsDetected:
                 vesselsDetected[str(idx)] = []
             vesselsDetected[str(idx)].append(vessel_detected)
-        progress = (idx / len(dataset)) * 100.0
+        progress = (idx / dataset.frames) * 100.0
         mongo_handler.update_video_status(video_id, "processing", progress)
 
     mongo_handler.update_vessels_detected_bulk(video_id, vesselsDetected)

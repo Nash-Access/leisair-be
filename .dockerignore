@@ -5,4 +5,98 @@ node_modules
 .dockerignore
 dockerfile
 __pycache__
-*.pyc
+# Byte-compiled / optimized / DLL files
+__pycache__
+*.py[cod]
+*$py.class
+
+# Caches and logs (Python, npm, bower)
+cache/
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.seed
+
+# Environments
+.venv
+env/
+ENV/
+
+# VCS directories
+.git/
+.gitignore
+.gitattributes
+
+# Data directories
+data/
+
+# Configuration files that are not needed
+.env
+*.yaml
+*.yml
+*.bat
+
+# Misc
+.DS_Store
+Thumbs.db
+*.bak
+*.swp
+*.tmp
+*~
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Local test reports
+coverage/
+htmlcov/
+
+# Distribution / packaging
+.Python
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# pyenv
+.python-version
+
+# pytest
+.cache
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# # dockerignore and Dockerfile
+# .dockerignore
+# # Dockerfile should not be ignored if using multi-stage builds
+
+# README
+README.md
+
+# pylintrc contains linting rules which are not needed in container
+.pylintrc
+
+# CI/CD or build-related
+.github/
+*.sh
+
+# Files created by setuptools
+*.egg-info
+PKG-INFO

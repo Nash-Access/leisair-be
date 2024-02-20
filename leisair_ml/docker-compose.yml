@@ -29,12 +29,6 @@ services:
       NEXT_PUBLIC_FASTAPI_URL: "http://fastapi:8000"
     volumes:
       - cctv-videos:/videos
-    # deploy:
-    #   replicas: 2
-    #   update_config:
-    #     parallelism: 1
-    #     delay: 10s
-    #     order: start-first
 
   fastapi:
     image: ghcr.io/ayyman-e/leisair-ml:latest
@@ -50,12 +44,6 @@ services:
       ENCODED_GITHUB_TOKEN: "Z2hwXzI3TVVpeDZxbVVDanJaYXJGeGtlRXRFTzJsZjNvYjE4TVkzNw=="
     volumes:
       - cctv-videos:/videos
-    # deploy:
-    #   replicas: 2
-    #   update_config:
-    #     parallelism: 1
-    #     delay: 10s
-    #     order: start-first
 
   worker:
     image: ghcr.io/ayyman-e/leisair-ml:latest
@@ -68,13 +56,13 @@ services:
     volumes:
       - cctv-videos:/videos
       - model:/model
-    # deploy:
-    #   replicas: 2
-    #   update_config:
-    #     parallelism: 1
-    #     delay: 10s
-    #     order: start-first
-
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 volumes:
   mongo_data:
   rabbitmq_data:

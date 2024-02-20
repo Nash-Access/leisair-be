@@ -1,4 +1,3 @@
-import time
 import sys
 import os
 from dotenv import load_dotenv

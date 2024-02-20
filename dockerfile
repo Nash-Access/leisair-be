@@ -7,23 +7,18 @@ ARG VERSION="unknown"
 # Set working directory
 WORKDIR /app
 
-# Install dependencies including libGL
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
-
-# Install Poetry
-RUN pip install poetry
-
-# Check Poetry version
-RUN poetry --version
+# Install dependencies including libGL and cleanup in one layer to reduce image size
+RUN apt-get update && \
+    apt-get install -y ffmpeg libsm6 libxext6 && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install poetry && \
+    poetry config virtualenvs.create false
 
 # Copy the poetry configuration files
 COPY pyproject.toml poetry.lock* /app/
 
-# Disable virtual environments creation by poetry
-RUN poetry config virtualenvs.create false
-
-# No need to install torch and torchvision as they are already in the base image
-RUN poetry install --no-dev
+# Install Python dependencies, excluding dev dependencies and already available packages
+RUN poetry install --no-dev --no-interaction --no-ansi
 
 # Copy the application files
 COPY . /app
