@@ -45,7 +45,7 @@ class MongoDBHandler:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
-                    connection_string = os.getenv("MONGO_URI", "mongodb://localhost:27017/nash")
+                    connection_string = os.getenv("MONGODB_URI", "mongodb://localhost:27017/nash")
                     try:
                         instance = super(MongoDBHandler, cls).__new__(cls)
                         instance.client = MongoClient(connection_string)

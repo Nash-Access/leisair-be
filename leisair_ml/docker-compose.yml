@@ -37,7 +37,7 @@ services:
       - "8000:8000"
     environment:
       RABBIT_URL: "amqp://rabbitmq:5672/"
-      MONGO_URI: "mongodb://mongodb:27017/nash"
+      MONGODB_URI: "mongodb://mongodb:27017/nash"
       VIDEOS_PATH: "/videos"
       GITHUB_USERNAME: "ayyman-e"
       GITHUB_TOKEN: "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"
@@ -50,7 +50,7 @@ services:
     command: ["poetry", "run", "worker"]
     environment:
       RABBIT_URL: "amqp://rabbitmq:5672/"
-      MONGO_URI: "mongodb://mongodb:27017/nash"
+      MONGODB_URI: "mongodb://mongodb:27017/nash"
       VIDEOS_PATH: "/videos"
       MODEL_PATH: "/model"
     volumes:
