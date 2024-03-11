@@ -6,6 +6,8 @@ import threading
 from leisair_ml.schemas import (
     CameraLocation,
     CameraVideo,
+    PyObjectId,
+    VesselCorrections,
     VesselDetected,
     VideoStatus,
 )
@@ -15,6 +17,7 @@ from pymongo.database import Database
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from dotenv import load_dotenv
+from nanoid import generate
 
 load_dotenv()
 
@@ -237,3 +240,67 @@ class MongoDBHandler:
         collection = self._get_collection("cameraLocation")
         documents = collection.find()
         return [CameraLocation(**document) for document in documents]
+    
+    def get_all_vessel_corrections(self) -> List[VesselCorrections]:
+        """
+        Get all vessel corrections.
+        """
+        collection = self._get_collection("vesselCorrections")
+        documents = collection.find()
+        return [VesselCorrections(**document) for document in documents]
+    
+    def update_vessel_correction_to_used(self, correction_id: PyObjectId) -> bool:
+        """
+        Update a vessel correction to used.
+        """
+        collection = self._get_collection("vesselCorrections")
+        result = collection.update_one(
+            {"_id": ObjectId(correction_id)}, {"$set": {"used": True}}
+        )
+        return result.modified_count > 0
+
+    def insert_new_model(self, training_start:str):
+        """
+        Save a new model to the database.
+        """
+        collection = self._get_collection("mlModels")
+        new_id = generate()
+        result = collection.insert_one(
+            {
+                "_id": new_id,
+                "status": "training",
+                "createdAt": training_start,
+                "selected": False,
+            }
+        )
+        return new_id
+    
+    def update_model_status(self, model_id: str, status: str) -> bool:
+        """
+        Update the status of a model.
+        """
+        collection = self._get_collection("mlModels")
+        result = collection.update_one(
+            {"_id": model_id}, {"$set": {"status": status}}
+        )
+        return result.modified_count > 0
+    
+    def upsert_model(self, model_id:str, weights_path: str, status:str) -> bool:
+        """
+        Upsert a new model to the database.
+        """
+        collection = self._get_collection("mlModels")
+        result = collection.update_one(
+            {"_id": model_id},
+            {"$set": {"path": weights_path, "status": status, "selected": True}},
+            upsert=True,
+        )
+        return result.modified_count > 0
+    
+    def get_selected_model(self):
+        """
+        Get the selected model.
+        """
+        collection = self._get_collection("mlModels")
+        document = collection.find_one({"selected": True})
+        return document

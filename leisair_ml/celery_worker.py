@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from celery import Celery
 from celery.utils.log import get_task_logger
 import logging
+from leisair_ml.services.model_update import update
 from leisair_ml.utils.mongo_handler import MongoDBHandler
 from leisair_ml.services.vessel_detection import run
 from pathlib import Path
@@ -39,9 +40,18 @@ celery_app.conf.update(
 
 @celery_app.task(name="tasks.process_file", bind=True)
 def process_file(self, file_path: str):
-    model_path = Path(os.environ.get("MODEL_PATH",current_dir))
+    selected_model = mongo_handler.get_selected_model()
+    if selected_model:
+        model_path = Path(selected_model["path"])
+    else:
+        model_path = Path(os.environ.get("MODEL_PATH",current_dir)) / "best.pt"
     logger.info("Starting to process file: %s", file_path)
     run(
-        weights=Path(model_path / "best.pt"),
+        weights=model_path,
         source=Path(file_path)
     )
+
+@celery_app.task(name="tasks.update_model", bind=True)
+def retrain_model(self):
+    logger.info("Starting to update model")
+    update()

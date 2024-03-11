@@ -42,3 +42,14 @@ async def process_video(response: Response, file: UploadFile = File(...)):
     except Exception as e:
         logger.error("Error processing file:", e)
         raise HTTPException(status_code=500, detail="Error processing file")
+
+@router.post("/deleteAll")
+async def delete_video(response: Response):
+    try:
+        for file in os.listdir(VIDEOS_PATH):
+            if file.endswith(".mp4"):
+                os.remove(os.path.join(VIDEOS_PATH, file))
+        return {"message": "All files deleted"}
+    except Exception as e:
+        logger.error("Error deleting file:", e)
+        raise HTTPException(status_code=500, detail="Error deleting file")

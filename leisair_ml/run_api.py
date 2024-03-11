@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import asynccontextmanager
-from leisair_ml.routers import file_upload, update
+from leisair_ml.routers import file_upload, update, model_update
 from leisair_ml.utils.file_watcher import start_watching, stop_watching
 import uvicorn
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,6 +23,7 @@ allowed_origins = [
 app = FastAPI()# (lifespan=lifespan)
 app.include_router(file_upload.router)
 app.include_router(update.router)
+app.include_router(model_update.router)
 
 app.add_middleware(
     CORSMiddleware,
